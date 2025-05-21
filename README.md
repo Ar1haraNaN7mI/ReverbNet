@@ -1,6 +1,6 @@
 # ReverbNet
 A brand New Net
-以下是一个完整的 **Markdown (`.md`) 文件**，你可以直接复制并保存为 `ReverberationNet_Documentation.md`，用于介绍这个神经网络模型的结构、训练方法和使用示例。
+
 
 ---
 
@@ -159,4 +159,4 @@ Evaluation MSE Loss: 0.098765
 
 ---
 
-如果你希望我为你生成一个可以直接下载的 `.md` 文件，请告诉我，我可以帮你打包成 Markdown 文档。
+
