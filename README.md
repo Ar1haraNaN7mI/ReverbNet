@@ -20,37 +20,37 @@ ReverberationNet 是一个创新的深度学习架构，灵感来源于交响乐
 
 | 序号 | 角色名 | 中文名 | 功能描述 | 连接处理器 |
 |------|--------|--------|----------|------------|
-| 1 | Eileen | 艾琳 | 高频调节模块 | Harmony |
-| 2 | Pluto | 普鲁托 | 大型非线性变换器 | Rhythm |
-| 3 | Organ | 管风琴 | 多管道并行处理 | Melody |
-| 4 | Harp | 竖琴 | 琶音式序列处理 | Texture |
-| 5 | WolfHour | 狼之时刻 | 时域反馈特征建模 | Dynamics |
-| 6 | Viola | 中提琴 | 中音域和声分析 | Timbre |
-| 7 | Philip | 菲利普 | 底层结构调和器 | Structure |
-| 8 | Cello | 大提琴 | 低音域深度共鸣 | Harmony |
-| 9 | CircusMaster | 奥斯瓦尔德 | 噪声结构解析与正则化 | Rhythm |
-| 10 | Bremen | 不莱梅乐队 | 多声道融合组件 | Melody |
-| 11 | Zaixian | 在宪 | 附旋律协同控制 | Texture |
-| 12 | Elena | 伊莲娜 | 主旋律建模者 | Dynamics |
-| 13 | Greta | 格蕾塔 | 节奏结构编码器 | Timbre |
-| 14 | Clarinet | 单簧管 | 音色处理 | Structure |
-| 15 | Horn | 圆号 | 音域扩展 | Harmony |
-| 16 | Tuba | 大号 | 低频增强 | Rhythm |
-| 17 | Trombone | 长号 | 滑音处理 | Melody |
-| 18 | Violin1 | 第一小提琴 | 主声部 | Texture |
-| 19 | Violin2 | 第二小提琴 | 副声部 | Dynamics |
+| 1 | Eileen | 艾琳 | 高频调节模块 | DataAggregator |
+| 2 | Pluto | 普鲁托 | 大型非线性变换器 | StreamProcessor |
+| 3 | Organ | 管风琴 | 多管道并行处理 | MessageRouter |
+| 4 | Harp | 竖琴 | 琶音式序列处理 | BandwidthManager |
+| 5 | WolfHour | 狼之时刻 | 时域反馈特征建模 | ProtocolConverter |
+| 6 | Viola | 中提琴 | 中音域和声分析 | CacheManager |
+| 7 | Philip | 菲利普 | 底层结构调和器 | SyncCoordinator |
+| 8 | Cello | 大提琴 | 低音域深度共鸣 | DataAggregator |
+| 9 | CircusMaster | 奥斯瓦尔德 | 噪声结构解析与正则化 | StreamProcessor |
+| 10 | Bremen | 不莱梅乐队 | 多声道融合组件 | MessageRouter |
+| 11 | Zaixian | 在宪 | 附旋律协同控制 | BandwidthManager |
+| 12 | Elena | 伊莲娜 | 主旋律建模者 | ProtocolConverter |
+| 13 | Greta | 格蕾塔 | 节奏结构编码器 | CacheManager |
+| 14 | Clarinet | 单簧管 | 音色处理 | SyncCoordinator |
+| 15 | Horn | 圆号 | 音域扩展 | DataAggregator |
+| 16 | Tuba | 大号 | 低频增强 | StreamProcessor |
+| 17 | Trombone | 长号 | 滑音处理 | MessageRouter |
+| 18 | Violin1 | 第一小提琴 | 主声部 | BandwidthManager |
+| 19 | Violin2 | 第二小提琴 | 副声部 | ProtocolConverter |
 
-### 融合处理器层
+### 融合处理器层（数据处理与传输枢纽）
 
-| 处理器名 | 中文名 | 连接角色 | 功能 |
-|---------|--------|----------|------|
-| Harmony | 和声处理器 | Eileen, Cello, Horn | 和声特征融合 |
-| Rhythm | 节奏处理器 | Pluto, CircusMaster, Tuba | 节奏特征融合 |
-| Melody | 旋律处理器 | Organ, Bremen, Trombone | 旋律特征融合 |
-| Texture | 织体处理器 | Harp, Zaixian, Violin1 | 织体特征融合 |
-| Dynamics | 力度处理器 | WolfHour, Elena, Violin2 | 力度特征融合 |
-| Timbre | 音色处理器 | Viola, Greta, Philip | 音色特征融合 |
-| Structure | 结构处理器 | Philip, Clarinet, Elena | 结构特征融合 |
+| 处理器名 | 中文名 | 连接角色 | 核心功能 | 处理机制 |
+|---------|--------|----------|----------|----------|
+| DataAggregator | 数据聚合器 | Eileen, Cello, Horn | 多源数据融合与智能路由分发 | 注意力聚合 + 路由选择 |
+| StreamProcessor | 流处理器 | Pluto, CircusMaster, Tuba | 实时数据流处理与时序同步 | 流缓冲 + 流量控制 |
+| MessageRouter | 消息路由器 | Organ, Bremen, Trombone | 智能消息路由与转发机制 | 消息编码 + 路由表决策 |
+| BandwidthManager | 带宽管理器 | Harp, Zaixian, Violin1 | 数据传输带宽优化与负载均衡 | 带宽分析 + 负载均衡 |
+| ProtocolConverter | 协议转换器 | WolfHour, Elena, Violin2 | 数据格式转换与协议适配 | 协议检测 + 格式转换 |
+| CacheManager | 缓存管理器 | Viola, Greta, Philip | 数据缓存与预取优化策略 | 缓存策略 + 预取机制 |
+| SyncCoordinator | 同步协调器 | Philip, Clarinet, Elena | 多源数据同步与时序协调 | 时序同步 + 协调矩阵 |
 
 ### Argallia指挥层
 
@@ -85,30 +85,30 @@ class Argallia(nn.Module):
 
 ![ReverberationNet 数据流程](./reverbnet_dataflow.png)
 
-*数据流程图：详细展示信息在角色模块和融合处理器间的传递路径与处理流程*
+*数据流程图：详细展示信息在角色模块和数据处理器间的传递路径与处理流程*
 
 ### 三层处理架构
 
 ```
-输入 → [19个角色模块] → [门控选择] → [7个融合处理器] → [反馈分发] → [角色模块] → Argallia → 输出
-      ↑________________  并行处理  ________________↑     ↑___________  网状连接  ___________↑
+输入 → [19个角色模块] → [门控选择] → [7个数据处理器] → [反馈分发] → [角色模块] → Argallia → 输出
+      ↑________________  特化处理  ________________↑     ↑___________  数据枢纽  ___________↑
 ```
 
 ### 连接规则
 
-1. **角色→处理器连接（门控选择）**：
-   - 每个角色通过门控机制选择连接到一个融合处理器
+1. **角色→数据处理器连接（门控选择）**：
+   - 每个角色通过门控机制选择连接到一个数据处理器
    - 门控概率动态调整连接强度
    - 实现自适应的信息路由
 
-2. **处理器→角色连接（反馈机制）**：
-   - 每个融合处理器连接到3个角色
-   - 融合来自多个角色的输入
+2. **数据处理器→角色连接（反馈机制）**：
+   - 每个数据处理器连接到3个角色
+   - 聚合来自多个角色的输入
    - 变分编码确保信息正则化
    - 反馈增强角色的表达能力
 
 3. **全局汇聚**：
-   - 所有角色和融合处理器输出汇聚到Argallia指挥层
+   - 所有角色和数据处理器输出汇聚到Argallia指挥层
    - 全局注意力机制提取最终特征
    - 输出标量回归结果
 
@@ -128,12 +128,12 @@ gate_prob = torch.sigmoid(self.processor_gate(role_output.mean(dim=1)))
 - **采样**: z = μ + ε × exp(0.5 × logvar)
 - **KL散度**: 正则化潜在空间
 
-### 3. 融合处理器融合
+### 3. 数据处理器处理
 ```python
-# 多头注意力融合
-fused_output, _ = self.input_fusion(stacked_inputs, stacked_inputs, stacked_inputs)
-# 处理器特有处理
-processed = self.processor_network(fused_output.mean(dim=1, keepdim=True))
+# 多头注意力聚合
+aggregated_output, _ = self.input_aggregator(stacked_inputs, stacked_inputs, stacked_inputs)
+# 数据路由处理
+routed_data = self.route_selector(aggregated_output.mean(dim=1, keepdim=True))
 # 分发到3个输出
 outputs = [distributor(z) for distributor in self.output_distributors]
 ```
@@ -190,7 +190,7 @@ python print_architecture.py
 
 - **总参数量**: ~1,043,413 参数
 - **角色层参数**: 733,844 (70.3%)
-- **融合处理器参数**: 290,752 (27.9%)
+- **数据处理器参数**: 290,752 (27.9%)
 - **指挥层参数**: 18,817 (1.8%)
 - **总连接数**: 40个连接
 - **网状连接**: 角色↔融合处理器双向连接
@@ -210,10 +210,11 @@ python print_architecture.py
 ### 网状架构优势
 
 1. **增强非线性能力**: 多层网状连接提供更复杂的特征变换
-2. **信息交互丰富**: 角色↔融合处理器双向连接增强信息流
+2. **信息交互丰富**: 角色↔数据处理器双向连接增强信息流
 3. **动态自适应**: 门控机制实现连接的动态调整
-4. **反馈增强**: 融合处理器反馈提升角色表达能力
+4. **反馈增强**: 数据处理器反馈提升角色表达能力
 5. **全局汇聚**: Argallia层实现最优特征整合
+6. **数据传输优化**: 专业化数据处理器提供高效的数据路由和传输
 
 ## 📁 文件结构
 
@@ -234,26 +235,26 @@ ReverbNet-main/
 ### 网状连接映射
 
 ```python
-# 角色到融合处理器的映射（门控选择）
+# 角色到数据处理器的映射（门控选择）
 role_to_processor = {
-    'eileen': 'harmony', 'pluto': 'rhythm', 'organ': 'melody',
-    'harp': 'texture', 'wolfhour': 'dynamics', 'viola': 'timbre',
-    'philip': 'structure', 'cello': 'harmony', 'circusmaster': 'rhythm',
-    'bremen': 'melody', 'zaixian': 'texture', 'elena': 'dynamics',
-    'greta': 'timbre', 'clarinet': 'structure', 'horn': 'harmony',
-    'tuba': 'rhythm', 'trombone': 'melody', 'violin1': 'texture',
-    'violin2': 'dynamics'
+    'eileen': 'data_aggregator', 'pluto': 'stream_processor', 'organ': 'message_router',
+    'harp': 'bandwidth_manager', 'wolfhour': 'protocol_converter', 'viola': 'cache_manager',
+    'philip': 'sync_coordinator', 'cello': 'data_aggregator', 'circusmaster': 'stream_processor',
+    'bremen': 'message_router', 'zaixian': 'bandwidth_manager', 'elena': 'protocol_converter',
+    'greta': 'cache_manager', 'clarinet': 'sync_coordinator', 'horn': 'data_aggregator',
+    'tuba': 'stream_processor', 'trombone': 'message_router', 'violin1': 'bandwidth_manager',
+    'violin2': 'protocol_converter'
 }
 
-# 融合处理器到角色的映射（每个处理器连接3个角色）
+# 数据处理器到角色的映射（每个处理器连接3个角色）
 processor_to_roles = {
-    'harmony': ['eileen', 'cello', 'horn'],
-    'rhythm': ['pluto', 'circusmaster', 'tuba'],
-    'melody': ['organ', 'bremen', 'trombone'],
-    'texture': ['harp', 'zaixian', 'violin1'],
-    'dynamics': ['wolfhour', 'elena', 'violin2'],
-    'timbre': ['viola', 'greta', 'philip'],
-    'structure': ['philip', 'clarinet', 'elena']
+    'data_aggregator': ['eileen', 'cello', 'horn'],
+    'stream_processor': ['pluto', 'circusmaster', 'tuba'],
+    'message_router': ['organ', 'bremen', 'trombone'],
+    'bandwidth_manager': ['harp', 'zaixian', 'violin1'],
+    'protocol_converter': ['wolfhour', 'elena', 'violin2'],
+    'cache_manager': ['viola', 'greta', 'philip'],
+    'sync_coordinator': ['philip', 'clarinet', 'elena']
 }
 ```
 
@@ -444,36 +445,135 @@ h_4 = W_3^Violin2 * h_3
 Violin2(x) = LayerNorm(h_4)
 ```
 
-### 融合处理器数学表达式（简化版）
+### 融合处理器数学表达式（专门化设计）
 
-#### FusionProcessor 处理流程
+#### HarmonyProcessor (和声处理器) - 基于傅里叶变换的频域和声分析
 
-对于每个融合处理器 P_k，接收来自连接角色的输入 {R_1, R_2, R_3}：
+对于和声处理器 H，接收来自连接角色的输入 {R_1, R_2, R_3}：
 
-**1. 简化输入融合**
+**1. 角色输入融合**
 ```
 X_avg = (1/3) * Σ[i=1 to 3] R_i
-X_fused = W_fusion^P * X_avg
 ```
 
-**2. 融合处理器特有处理（简化）**
+**2. 频域和声分析**
 ```
-h_mean = Mean(X_fused, dim=1)
-h_1 = GELU(W_1^P * h_mean), W_1^P ∈ R^(d×2d)
-h_proc = W_2^P * h_1, W_2^P ∈ R^(2d×d)
+h_freq = tanh(W_2^H * tanh(W_1^H * Mean(X_avg, dim=1))), W_1^H ∈ R^(d×2d), W_2^H ∈ R^(2d×d)
 ```
 
-**3. 变分编码**
+**3. 和声共振处理**
 ```
-μ_P = W_μ^P * h_proc
-log(σ_P²) = W_logσ^P * h_proc
-z_P = μ_P + ε ⊙ exp(0.5 * log(σ_P²))
+h_resonance = h_freq · M_resonance, M_resonance ∈ R^(d×d) (可学习和声共振矩阵)
 ```
 
-**4. 输出分发**
+**4. 变分编码与输出分发**
+```
+μ_H = W_μ^H * h_resonance, log(σ_H²) = W_logσ^H * h_resonance
+z_H = μ_H + ε ⊙ exp(0.5 * log(σ_H²))
+O_j^H = W_j^dist * z_H, j = 1,2,3
+```
+
+#### RhythmProcessor (节奏处理器) - 基于时域卷积的节拍分析
+
+**1. 多尺度时域卷积**
+```
+tempo_1 = ReLU(Conv1D(X_avg^T, kernel=3)^T)
+tempo_2 = ReLU(Conv1D(X_avg^T, kernel=5)^T)  
+tempo_3 = ReLU(Conv1D(X_avg^T, kernel=7)^T)
+```
+
+**2. 特征融合与节拍同步**
+```
+tempo_fused = Concat[tempo_1, tempo_2, tempo_3]  # ∈ R^(B×L×3d)
+h_rhythm = ReLU(W_2^R * ReLU(W_1^R * Mean(tempo_fused, dim=1)))
+其中: W_1^R ∈ R^(3d×2d), W_2^R ∈ R^(2d×d)
+```
+
+#### MelodyProcessor (旋律处理器) - 基于递归神经网络的旋律建模
+
+**1. 双向LSTM旋律建模**
+```
+(h_forward, h_backward) = BiLSTM(X_avg, hidden_size=d/2)
+lstm_out = h_forward ⊕ h_backward  # ∈ R^(B×L×d)
+```
+
+**2. 旋律轮廓提取**
+```
+h_melody = W_2^M * sigmoid(W_1^M * Mean(lstm_out, dim=1))
+其中: W_1^M, W_2^M ∈ R^(d×d)
+```
+
+#### TextureProcessor (织体处理器) - 基于注意力机制的纹理分析
+
+**1. 多头自注意力纹理分析**
+```
+attn_out = MultiheadAttention(X_avg, X_avg, X_avg, heads=8)
+```
+
+**2. 纹理密度调节**
+```
+h_texture = W_2^T * LeakyReLU(W_1^T * Mean(attn_out, dim=1), α=0.2)
+其中: W_1^T ∈ R^(d×2d), W_2^T ∈ R^(2d×d)
+```
+
+#### DynamicsProcessor (力度处理器) - 基于动态范围压缩的强度调节
+
+**1. 动态范围分析**
+```
+h_dynamics = W_2^D * Softplus(W_1^D * Mean(X_avg, dim=1))
+其中: W_1^D, W_2^D ∈ R^(d×d)
+```
+
+**2. 动态压缩/扩展**
+```
+h_compressed = h_dynamics ⊙ sigmoid(C_compressor)
+其中: C_compressor ∈ R^d (可学习压缩比参数)
+```
+
+#### TimbreProcessor (音色处理器) - 基于频谱包络的音色建模
+
+**1. 频谱包络提取**
+```
+h_spectral = W_2^Ti * ELU(W_1^Ti * Mean(X_avg, dim=1))
+其中: W_1^Ti ∈ R^(d×2d), W_2^Ti ∈ R^(2d×d)
+```
+
+**2. 音色调制**
+```
+h_timbre = h_spectral · M_timbre
+其中: M_timbre = 0.1 * I + 0.01 * N(0,1) ∈ R^(d×d) (可学习音色调制矩阵)
+```
+
+#### StructureProcessor (结构处理器) - 基于图卷积的结构建模
+
+**1. 图卷积结构建模**
+```
+h_1 = SiLU(W_1^S * Mean(X_avg, dim=1))
+h_1_structured = h_1 · M_structure
+h_structure = SiLU(W_2^S * h_1_structured)
+```
+
+**2. 结构连接矩阵**
+```
+其中: M_structure ∈ R^(d×d) (可学习结构连接矩阵)
+W_1^S, W_2^S ∈ R^(d×d)
+```
+
+#### 通用变分编码与输出分发
+
+对于所有融合处理器 P ∈ {H, R, M, T, D, Ti, S}：
+
+**变分编码**
+```
+μ_P = W_μ^P * h_processed
+log(σ_P²) = W_logσ^P * h_processed  
+z_P = μ_P + ε ⊙ exp(0.5 * log(σ_P²)), ε ~ N(0, I)
+```
+
+**输出分发**
 ```
 O_j^P = W_j^dist * z_P, j = 1,2,3
-Output_j^P = Expand(O_j^P, L_target)
+Output_j^P = Expand(O_j^P, L_target)  # 扩展到目标序列长度
 ```
 
 ### Argallia指挥层数学表达式
@@ -541,9 +641,9 @@ p_i^gate = sigmoid(W_g^(i) · (1/L) * Σ[t=1 to L] h_{i,t}')
 R_i^(1) = RoleModule_i(x), i = 1, 2, ..., 19
 ```
 
-#### 第二层：融合处理器处理
+#### 第二层：数据处理器处理
 ```
-P_j = FusionProcessor_j({R_k^(1) : k ∈ Connected(j)}), j = 1, 2, ..., 7
+P_j = DataProcessor_j({R_k^(1) : k ∈ Connected(j)}), j = 1, 2, ..., 7
 ```
 
 #### 第三层：角色反馈处理
@@ -566,8 +666,8 @@ y = Argallia({R_1^(2), ..., R_19^(2)}, {P_1, ..., P_7})
 - **Harp**: 4d² + d 参数 (LSTM)
 - **WolfHour**: 6d² + 2d 参数 (双向GRU)
 
-#### 融合处理器参数
-每个融合处理器: d² + 6d² + 3d² = 10d² 参数
+#### 数据处理器参数
+每个数据处理器: d² + 6d² + 3d² = 10d² 参数
 
 #### Argallia层参数
 64d² + d²/2 + d/2 + 1 参数
@@ -685,4 +785,142 @@ Epoch  50/50 | Total Loss: 0.055662  | MSE Loss: 0.047204 | KL Loss: 8.46     | 
 
 ---
 
-> 🎵 "19个角色如同音乐家，7个融合处理器如同协调组，Argallia如同指挥家，通过网状连接共同演奏出复杂而美妙的机器学习交响曲。"
+> 🎵 "19个角色如同音乐家，7个数据处理器如同音响设备与传输系统，Argallia如同指挥家，通过网状连接共同演奏出复杂而美妙的机器学习交响曲。"
+
+### 数据处理器数学表达式（专门化数据处理与传输设计）
+
+#### DataAggregator (数据聚合器) - 多源数据融合与智能路由分发
+
+对于数据聚合器 DA，接收来自连接角色的输入 {R_1, R_2, R_3}：
+
+**1. 多源数据聚合**
+```
+X_stacked = Stack([R_1, R_2, R_3], dim=1) ∈ R^(B×3×L×d)
+X_flattened = Reshape(X_stacked, (B, 3L, d))
+```
+
+**2. 注意力聚合与归一化**
+```
+X_aggregated = MultiheadAttention(X_flattened, X_flattened, X_flattened, heads=4)
+X_norm = LayerNorm(Mean(X_aggregated, dim=1))
+```
+
+**3. 智能路由选择**
+```
+RouteProb = Sigmoid(W_1^DA * X_norm), W_1^DA ∈ R^(d×d/2)
+RoutedData = W_2^DA * RouteProb, W_2^DA ∈ R^(d/2×d)
+```
+
+#### StreamProcessor (流处理器) - 实时数据流处理与时序同步
+
+**1. 流数据缓冲与同步**
+```
+X_avg = (1/3) * Σ[i=1 to 3] R_i
+BufferedFlow = ReLU(Conv1D(X_avg^T, kernel=3)^T)
+SyncedFlow = ReLU(Conv1D(BufferedFlow^T, kernel=5)^T)
+```
+
+**2. 流量控制与调节**
+```
+FlowControlled = Tanh(W_2^SP * ReLU(W_1^SP * Mean(SyncedFlow, dim=1)))
+其中: W_1^SP ∈ R^(d×2d), W_2^SP ∈ R^(2d×d)
+```
+
+#### MessageRouter (消息路由器) - 智能消息路由与转发机制
+
+**1. 消息编码与双向传递**
+```
+(h_forward, h_backward) = BiLSTM(X_avg, hidden_size=d/2)
+EncodedMessage = h_forward ⊕ h_backward
+```
+
+**2. 路由表决策与转发**
+```
+RoutingWeights = Softmax(W_1^MR * Mean(EncodedMessage, dim=1), dim=-1)
+RoutedMessage = W_2^MR * RoutingWeights
+其中: W_1^MR, W_2^MR ∈ R^(d×d)
+```
+
+#### BandwidthManager (带宽管理器) - 数据传输带宽优化与负载均衡
+
+**1. 带宽分析与优化**
+```
+OptimizedBandwidth = MultiheadAttention(X_avg, X_avg, X_avg, heads=8)
+```
+
+**2. 负载均衡与分散**
+```
+LoadBalanced = Dropout(W_2^BM * LeakyReLU(W_1^BM * Mean(OptimizedBandwidth, dim=1), α=0.2), p=0.1)
+其中: W_1^BM ∈ R^(d×2d), W_2^BM ∈ R^(2d×d)
+```
+
+#### ProtocolConverter (协议转换器) - 数据格式转换与协议适配
+
+**1. 协议检测与分析**
+```
+ProtocolStrength = W_2^PC * Softplus(W_1^PC * Mean(X_avg, dim=1))
+其中: W_1^PC, W_2^PC ∈ R^(d×d)
+```
+
+**2. 格式转换与适配**
+```
+ConvertedData = ProtocolStrength ⊙ Sigmoid(C_format)
+其中: C_format ∈ R^d (可学习格式转换参数)
+```
+
+#### CacheManager (缓存管理器) - 数据缓存与预取优化策略
+
+**1. 缓存策略优化**
+```
+CachedData = W_2^CM * ELU(W_1^CM * Mean(X_avg, dim=1))
+其中: W_1^CM ∈ R^(d×2d), W_2^CM ∈ R^(2d×d)
+```
+
+**2. 预取机制处理**
+```
+PrefetchedData = CachedData · M_prefetch
+其中: M_prefetch = 0.1 * I + 0.01 * N(0,1) ∈ R^(d×d) (可学习预取矩阵)
+```
+
+#### SyncCoordinator (同步协调器) - 多源数据同步与时序协调
+
+**1. 时序同步处理**
+```
+Sync1 = SiLU(W_1^SC * Mean(X_avg, dim=1))
+Coordinated = Sync1 · M_coordination
+```
+
+**2. 协调矩阵处理**
+```
+Synchronized = SiLU(W_2^SC * Coordinated)
+其中: M_coordination ∈ R^(d×d) (可学习协调矩阵)
+W_1^SC, W_2^SC ∈ R^(d×d)
+```
+
+#### 通用数据处理器变分编码与分发
+
+对于所有数据处理器 P ∈ {DA, SP, MR, BM, PC, CM, SC}：
+
+**变分编码**
+```
+μ_P = W_μ^P * ProcessedData
+log(σ_P²) = W_logσ^P * ProcessedData  
+z_P = μ_P + ε ⊙ exp(0.5 * log(σ_P²)), ε ~ N(0, I)
+```
+
+**输出分发（数据传输）**
+```
+O_j^P = W_j^dist * z_P, j = 1,2,3
+DistributedOutput_j^P = Expand(O_j^P, L_target)  # 分发到目标序列长度
+```
+
+### 数据处理器与角色模块的功能区分
+
+| 功能层面 | 角色模块 | 数据处理器 |
+|---------|----------|------------|
+| **核心功能** | 特化特征提取与变换 | 数据聚合、路由、传输 |
+| **处理方式** | 专有算法（LSTM、注意力、卷积等） | 通用数据处理（聚合、缓存、同步等） |
+| **连接模式** | 1对1门控选择 | 3对1聚合分发 |
+| **设计理念** | 音乐角色特化 | 计算机网络枢纽 |
+| **激活函数** | 多样化（Tanh、ReLU、Sigmoid等） | 标准化（ReLU、Sigmoid、SiLU等） |
+| **变分编码** | 角色特有潜在空间 | 数据传输优化空间 |

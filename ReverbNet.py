@@ -4,27 +4,25 @@ import torch.nn.functional as F
 import math
 
 # --- 融合处理器层定义 ---
-class FusionProcessor(nn.Module):
-    """
-    融合处理器：接收来自角色的信息，进行融合处理，输出到连接的角色
-    每个融合处理器连接3个角色（简化但保持功能性）
-    """
-    def __init__(self, d, processor_name):
+class DataAggregator(nn.Module):
+    """数据聚合器 - 多源数据融合与路由分发"""
+    def __init__(self, d, processor_name="DataAggregator"):
         super().__init__()
         self.d = d
         self.processor_name = processor_name
         
-        # 简化的输入融合层
-        self.input_fusion = nn.Linear(d, d)
+        # 数据聚合层
+        self.input_aggregator = nn.MultiheadAttention(d, num_heads=4, batch_first=True)
+        self.aggregation_norm = nn.LayerNorm(d)
         
-        # 融合处理器特有的处理层（简化）
-        self.fusion_processor = nn.Sequential(
-            nn.Linear(d, d*2),
-            nn.GELU(),
-            nn.Linear(d*2, d)
+        # 数据路由层
+        self.route_selector = nn.Sequential(
+            nn.Linear(d, d//2),
+            nn.Sigmoid(),  # 路由概率
+            nn.Linear(d//2, d)
         )
         
-        # 输出分发层（分发到3个连接的角色）
+        # 输出分发层
         self.output_distributors = nn.ModuleList([
             nn.Linear(d, d) for _ in range(3)
         ])
@@ -34,34 +32,359 @@ class FusionProcessor(nn.Module):
         self.W_logvar = nn.Linear(d, d)
         
     def forward(self, role_inputs):
-        """
-        role_inputs: list of tensors from connected roles
-        """
-        # 简化的多角色输入融合
+        # 多源数据聚合
         if len(role_inputs) > 1:
-            # 直接平均融合，然后通过线性层
-            avg_input = torch.stack(role_inputs, dim=1).mean(dim=1)  # (B, L, d)
+            stacked_inputs = torch.stack(role_inputs, dim=1)
+            B, num_inputs, L, d = stacked_inputs.shape
+            stacked_inputs = stacked_inputs.view(B, num_inputs * L, d)
+            
+            # 注意力聚合
+            aggregated, _ = self.input_aggregator(stacked_inputs, stacked_inputs, stacked_inputs)
+            aggregated = self.aggregation_norm(aggregated.mean(dim=1, keepdim=True))
         else:
-            avg_input = role_inputs[0]
+            aggregated = self.aggregation_norm(role_inputs[0].mean(dim=1, keepdim=True))
         
-        # 输入融合
-        fused_output = self.input_fusion(avg_input)
-        
-        # 融合处理器特有处理
-        processed = self.fusion_processor(fused_output.mean(dim=1, keepdim=True))  # (B, 1, d)
+        # 数据路由处理
+        routed_data = self.route_selector(aggregated)
         
         # 变分编码
-        mu = self.W_mu(processed)
-        logvar = self.W_logvar(processed)
+        mu = self.W_mu(routed_data)
+        logvar = self.W_logvar(routed_data)
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         z = mu + eps * std
         
-        # 分发到3个输出
+        # 分发输出
         outputs = []
         for distributor in self.output_distributors:
-            output = distributor(z)  # (B, 1, d)
-            outputs.append(output.expand(-1, avg_input.size(1), -1))  # expand to original length
+            output = distributor(z)
+            outputs.append(output.expand(-1, role_inputs[0].size(1), -1))
+        
+        return outputs, mu, logvar
+
+class StreamProcessor(nn.Module):
+    """流处理器 - 实时数据流处理与同步"""
+    def __init__(self, d, processor_name="StreamProcessor"):
+        super().__init__()
+        self.d = d
+        self.processor_name = processor_name
+        
+        # 流缓冲处理
+        self.stream_buffer = nn.Conv1d(d, d, kernel_size=3, padding=1)
+        self.temporal_sync = nn.Conv1d(d, d, kernel_size=5, padding=2)
+        
+        # 流量控制
+        self.flow_controller = nn.Sequential(
+            nn.Linear(d, d*2),
+            nn.ReLU(),
+            nn.Linear(d*2, d),
+            nn.Tanh()  # 流量调节
+        )
+        
+        # 输出分发层
+        self.output_distributors = nn.ModuleList([
+            nn.Linear(d, d) for _ in range(3)
+        ])
+        
+        # 变分编码
+        self.W_mu = nn.Linear(d, d)
+        self.W_logvar = nn.Linear(d, d)
+        
+    def forward(self, role_inputs):
+        # 流数据整合
+        if len(role_inputs) > 1:
+            avg_input = torch.stack(role_inputs, dim=1).mean(dim=1)
+        else:
+            avg_input = role_inputs[0]
+        
+        # 流缓冲处理
+        x_t = avg_input.transpose(1, 2)
+        buffered = F.relu(self.stream_buffer(x_t))
+        synced = F.relu(self.temporal_sync(buffered))
+        processed = synced.transpose(1, 2)
+        
+        # 流量控制
+        flow_controlled = self.flow_controller(processed.mean(dim=1, keepdim=True))
+        
+        # 变分编码
+        mu = self.W_mu(flow_controlled)
+        logvar = self.W_logvar(flow_controlled)
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        z = mu + eps * std
+        
+        # 分发输出
+        outputs = []
+        for distributor in self.output_distributors:
+            output = distributor(z)
+            outputs.append(output.expand(-1, avg_input.size(1), -1))
+        
+        return outputs, mu, logvar
+
+class MessageRouter(nn.Module):
+    """消息路由器 - 智能消息路由与转发"""
+    def __init__(self, d, processor_name="MessageRouter"):
+        super().__init__()
+        self.d = d
+        self.processor_name = processor_name
+        
+        # 消息编码
+        self.message_encoder = nn.LSTM(d, d//2, bidirectional=True, batch_first=True)
+        
+        # 路由表
+        self.routing_table = nn.Sequential(
+            nn.Linear(d, d),
+            nn.Softmax(dim=-1),  # 路由权重
+            nn.Linear(d, d)
+        )
+        
+        # 输出分发层
+        self.output_distributors = nn.ModuleList([
+            nn.Linear(d, d) for _ in range(3)
+        ])
+        
+        # 变分编码
+        self.W_mu = nn.Linear(d, d)
+        self.W_logvar = nn.Linear(d, d)
+        
+    def forward(self, role_inputs):
+        # 消息整合
+        if len(role_inputs) > 1:
+            avg_input = torch.stack(role_inputs, dim=1).mean(dim=1)
+        else:
+            avg_input = role_inputs[0]
+        
+        # 消息编码
+        encoded_msg, _ = self.message_encoder(avg_input)
+        
+        # 路由决策
+        routed_msg = self.routing_table(encoded_msg.mean(dim=1, keepdim=True))
+        
+        # 变分编码
+        mu = self.W_mu(routed_msg)
+        logvar = self.W_logvar(routed_msg)
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        z = mu + eps * std
+        
+        # 分发输出
+        outputs = []
+        for distributor in self.output_distributors:
+            output = distributor(z)
+            outputs.append(output.expand(-1, avg_input.size(1), -1))
+        
+        return outputs, mu, logvar
+
+class BandwidthManager(nn.Module):
+    """带宽管理器 - 数据传输带宽优化与负载均衡"""
+    def __init__(self, d, processor_name="BandwidthManager"):
+        super().__init__()
+        self.d = d
+        self.processor_name = processor_name
+        
+        # 带宽分析
+        self.bandwidth_analyzer = nn.MultiheadAttention(d, num_heads=8, batch_first=True)
+        
+        # 负载均衡
+        self.load_balancer = nn.Sequential(
+            nn.Linear(d, d*2),
+            nn.LeakyReLU(0.2),
+            nn.Linear(d*2, d),
+            nn.Dropout(0.1)  # 随机负载分散
+        )
+        
+        # 输出分发层
+        self.output_distributors = nn.ModuleList([
+            nn.Linear(d, d) for _ in range(3)
+        ])
+        
+        # 变分编码
+        self.W_mu = nn.Linear(d, d)
+        self.W_logvar = nn.Linear(d, d)
+        
+    def forward(self, role_inputs):
+        # 带宽分析
+        if len(role_inputs) > 1:
+            avg_input = torch.stack(role_inputs, dim=1).mean(dim=1)
+        else:
+            avg_input = role_inputs[0]
+        
+        # 带宽优化
+        optimized, _ = self.bandwidth_analyzer(avg_input, avg_input, avg_input)
+        
+        # 负载均衡
+        balanced = self.load_balancer(optimized.mean(dim=1, keepdim=True))
+        
+        # 变分编码
+        mu = self.W_mu(balanced)
+        logvar = self.W_logvar(balanced)
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        z = mu + eps * std
+        
+        # 分发输出
+        outputs = []
+        for distributor in self.output_distributors:
+            output = distributor(z)
+            outputs.append(output.expand(-1, avg_input.size(1), -1))
+        
+        return outputs, mu, logvar
+
+class ProtocolConverter(nn.Module):
+    """协议转换器 - 数据格式转换与协议适配"""
+    def __init__(self, d, processor_name="ProtocolConverter"):
+        super().__init__()
+        self.d = d
+        self.processor_name = processor_name
+        
+        # 协议检测
+        self.protocol_detector = nn.Sequential(
+            nn.Linear(d, d),
+            nn.Softplus(),  # 协议强度
+            nn.Linear(d, d)
+        )
+        
+        # 格式转换器
+        self.format_converter = nn.Parameter(torch.ones(d) * 0.5)  # 可学习转换参数
+        
+        # 输出分发层
+        self.output_distributors = nn.ModuleList([
+            nn.Linear(d, d) for _ in range(3)
+        ])
+        
+        # 变分编码
+        self.W_mu = nn.Linear(d, d)
+        self.W_logvar = nn.Linear(d, d)
+        
+    def forward(self, role_inputs):
+        # 协议分析
+        if len(role_inputs) > 1:
+            avg_input = torch.stack(role_inputs, dim=1).mean(dim=1)
+        else:
+            avg_input = role_inputs[0]
+        
+        # 协议转换
+        protocol_analyzed = self.protocol_detector(avg_input.mean(dim=1, keepdim=True))
+        
+        # 格式适配
+        converted = protocol_analyzed * torch.sigmoid(self.format_converter)
+        
+        # 变分编码
+        mu = self.W_mu(converted)
+        logvar = self.W_logvar(converted)
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        z = mu + eps * std
+        
+        # 分发输出
+        outputs = []
+        for distributor in self.output_distributors:
+            output = distributor(z)
+            outputs.append(output.expand(-1, avg_input.size(1), -1))
+        
+        return outputs, mu, logvar
+
+class CacheManager(nn.Module):
+    """缓存管理器 - 数据缓存与预取优化"""
+    def __init__(self, d, processor_name="CacheManager"):
+        super().__init__()
+        self.d = d
+        self.processor_name = processor_name
+        
+        # 缓存策略
+        self.cache_policy = nn.Sequential(
+            nn.Linear(d, d*2),
+            nn.ELU(),
+            nn.Linear(d*2, d)
+        )
+        
+        # 预取机制
+        self.prefetch_matrix = nn.Parameter(torch.eye(d) * 0.1 + torch.randn(d, d) * 0.01)
+        
+        # 输出分发层
+        self.output_distributors = nn.ModuleList([
+            nn.Linear(d, d) for _ in range(3)
+        ])
+        
+        # 变分编码
+        self.W_mu = nn.Linear(d, d)
+        self.W_logvar = nn.Linear(d, d)
+        
+    def forward(self, role_inputs):
+        # 缓存分析
+        if len(role_inputs) > 1:
+            avg_input = torch.stack(role_inputs, dim=1).mean(dim=1)
+        else:
+            avg_input = role_inputs[0]
+        
+        # 缓存优化
+        cached = self.cache_policy(avg_input.mean(dim=1, keepdim=True))
+        
+        # 预取处理
+        prefetched = torch.matmul(cached, self.prefetch_matrix)
+        
+        # 变分编码
+        mu = self.W_mu(prefetched)
+        logvar = self.W_logvar(prefetched)
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        z = mu + eps * std
+        
+        # 分发输出
+        outputs = []
+        for distributor in self.output_distributors:
+            output = distributor(z)
+            outputs.append(output.expand(-1, avg_input.size(1), -1))
+        
+        return outputs, mu, logvar
+
+class SyncCoordinator(nn.Module):
+    """同步协调器 - 多源数据同步与时序协调"""
+    def __init__(self, d, processor_name="SyncCoordinator"):
+        super().__init__()
+        self.d = d
+        self.processor_name = processor_name
+        
+        # 时序同步
+        self.temporal_sync1 = nn.Linear(d, d)
+        self.temporal_sync2 = nn.Linear(d, d)
+        
+        # 协调矩阵（可学习）
+        self.coordination_matrix = nn.Parameter(torch.randn(d, d) * 0.01)
+        
+        # 输出分发层
+        self.output_distributors = nn.ModuleList([
+            nn.Linear(d, d) for _ in range(3)
+        ])
+        
+        # 变分编码
+        self.W_mu = nn.Linear(d, d)
+        self.W_logvar = nn.Linear(d, d)
+        
+    def forward(self, role_inputs):
+        # 多源同步
+        if len(role_inputs) > 1:
+            avg_input = torch.stack(role_inputs, dim=1).mean(dim=1)
+        else:
+            avg_input = role_inputs[0]
+        
+        # 时序协调
+        sync1 = F.silu(self.temporal_sync1(avg_input.mean(dim=1, keepdim=True)))
+        coordinated = torch.matmul(sync1, self.coordination_matrix)
+        synchronized = F.silu(self.temporal_sync2(coordinated))
+        
+        # 变分编码
+        mu = self.W_mu(synchronized)
+        logvar = self.W_logvar(synchronized)
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        z = mu + eps * std
+        
+        # 分发输出
+        outputs = []
+        for distributor in self.output_distributors:
+            output = distributor(z)
+            outputs.append(output.expand(-1, avg_input.size(1), -1))
         
         return outputs, mu, logvar
 
@@ -743,10 +1066,22 @@ class ReverberationNet(nn.Module):
         })
         
         # 融合处理器层
-        processor_names = ['Harmony', 'Rhythm', 'Melody', 'Texture', 'Dynamics', 'Timbre', 'Structure']
-        self.processors = nn.ModuleDict({
-            name.lower(): FusionProcessor(d, name) for name in processor_names[:num_instruments]
-        })
+        processor_classes = {
+            'data_aggregator': DataAggregator,
+            'stream_processor': StreamProcessor,
+            'message_router': MessageRouter,
+            'bandwidth_manager': BandwidthManager,
+            'protocol_converter': ProtocolConverter,
+            'cache_manager': CacheManager,
+            'sync_coordinator': SyncCoordinator
+        }
+        
+        processor_names = ['data_aggregator', 'stream_processor', 'message_router', 'bandwidth_manager', 'protocol_converter', 'cache_manager', 'sync_coordinator']
+        self.processors = nn.ModuleDict()
+        
+        for i, name in enumerate(processor_names[:num_instruments]):
+            processor_class = processor_classes[name]
+            self.processors[name] = processor_class(d, name.replace('_', ' ').title())
         
         # 角色到融合处理器的连接映射（每个角色选择一个处理器）
         self.role_to_processor = self._create_role_processor_mapping()

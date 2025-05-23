@@ -54,8 +54,9 @@ def draw_mesh_architecture():
         ax.add_patch(circle)
         ax.text(x, y-4, role, fontsize=8, ha='center', fontweight='bold')
     
-    # 融合处理器位置（内圈）
-    processor_names = ['Harmony', 'Rhythm', 'Melody', 'Texture', 'Dynamics', 'Timbre', 'Structure']
+    # 数据处理器位置（内圈）
+    processor_names = ['DataAggregator', 'StreamProcessor', 'MessageRouter', 'BandwidthManager', 
+                      'ProtocolConverter', 'CacheManager', 'SyncCoordinator']
     processor_colors = plt.cm.Set1(np.linspace(0, 1, len(processor_names)))
     
     processor_positions = {}
@@ -65,14 +66,34 @@ def draw_mesh_architecture():
         angle = 2 * np.pi * i / len(processor_names)
         x = center_x + proc_radius * np.cos(angle)
         y = center_y + proc_radius * np.sin(angle)
-        processor_positions[processor.lower()] = (x, y)
+        # 使用snake_case作为key来匹配代码中的名称
+        key = processor.lower().replace('aggregator', 'aggregator').replace('processor', 'processor').replace('router', 'router').replace('manager', 'manager').replace('converter', 'converter').replace('coordinator', 'coordinator')
+        # 转换为实际的key格式
+        if 'aggregator' in key:
+            key = 'data_aggregator'
+        elif 'stream' in key and 'processor' in key:
+            key = 'stream_processor'
+        elif 'message' in key and 'router' in key:
+            key = 'message_router'
+        elif 'bandwidth' in key and 'manager' in key:
+            key = 'bandwidth_manager'
+        elif 'protocol' in key and 'converter' in key:
+            key = 'protocol_converter'
+        elif 'cache' in key and 'manager' in key:
+            key = 'cache_manager'
+        elif 'sync' in key and 'coordinator' in key:
+            key = 'sync_coordinator'
         
-        # 绘制融合处理器
+        processor_positions[key] = (x, y)
+        
+        # 绘制数据处理器
         rect = FancyBboxPatch((x-4, y-2), 8, 4, boxstyle="round,pad=0.2",
                              facecolor=processor_colors[i], alpha=0.8, 
                              edgecolor='black', linewidth=1.5)
         ax.add_patch(rect)
-        ax.text(x, y, processor, fontsize=9, ha='center', va='center', fontweight='bold')
+        # 显示简短名称
+        short_name = processor.replace('Aggregator', 'Agg').replace('Processor', 'Proc').replace('Manager', 'Mgr').replace('Converter', 'Conv').replace('Coordinator', 'Coord')
+        ax.text(x, y, short_name, fontsize=8, ha='center', va='center', fontweight='bold')
     
     # Argallia指挥层（中心）
     argallia_circle = plt.Circle((center_x, center_y), 5, color='gold', alpha=0.9, ec='red', linewidth=2)
@@ -85,14 +106,14 @@ def draw_mesh_architecture():
         model = ReverberationNet(d=64, num_instruments=7)
         structure_info = model.get_network_structure()
         
-        # 角色→融合处理器连接（红色）
+        # 角色→数据处理器连接（红色）
         for role_name, processor_name in structure_info['role_to_processor'].items():
             if role_name in role_positions and processor_name in processor_positions:
                 x1, y1 = role_positions[role_name]
                 x2, y2 = processor_positions[processor_name]
                 ax.plot([x1, x2], [y1, y2], 'r-', alpha=0.6, linewidth=1.5)
         
-        # 融合处理器→角色反馈连接（蓝色）
+        # 数据处理器→角色反馈连接（蓝色）
         for processor_name, connected_roles in structure_info['processor_to_roles'].items():
             if processor_name in processor_positions:
                 px, py = processor_positions[processor_name]
@@ -110,11 +131,11 @@ def draw_mesh_architecture():
     
     # 图例
     legend_elements = [
-        plt.Line2D([0], [0], color='red', lw=2, label='角色→融合处理器'),
-        plt.Line2D([0], [0], color='blue', lw=2, linestyle='--', label='融合处理器→角色反馈'),
+        plt.Line2D([0], [0], color='red', lw=2, label='角色→数据处理器'),
+        plt.Line2D([0], [0], color='blue', lw=2, linestyle='--', label='数据处理器→角色反馈'),
         plt.Line2D([0], [0], color='green', lw=2, linestyle=':', label='→Argallia汇聚'),
         plt.Circle((0, 0), 0.1, color='lightblue', label='角色模块'),
-        patches.Rectangle((0, 0), 0.1, 0.1, color='orange', label='融合处理器'),
+        patches.Rectangle((0, 0), 0.1, 0.1, color='orange', label='数据处理器'),
         plt.Circle((0, 0), 0.1, color='gold', label='Argallia指挥层')
     ]
     ax.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(0.98, 0.98))
@@ -143,7 +164,7 @@ def print_network_structure():
         
         print(f"总参数数量: {total_params:,}")
         print(f"角色模块数量: {len(structure_info['roles'])}")
-        print(f"融合处理器数量: {len(structure_info['processors'])}")
+        print(f"数据处理器数量: {len(structure_info['processors'])}")
         print(f"总连接数: {structure_info['total_connections']}")
         print()
         
@@ -153,16 +174,17 @@ def print_network_structure():
             connected_processor = structure_info['role_to_processor'][role_name]
             print(f"{i:2d}. {role_name:<12} → {connected_processor}")
         
-        print("\n🎵 融合处理器连接映射:")
+        print("\n🔧 数据处理器连接映射:")
         print("-" * 50)
         for processor_name, connected_roles in structure_info['processor_to_roles'].items():
-            print(f"{processor_name:<12} ← {', '.join(connected_roles)}")
+            print(f"{processor_name:<18} ← {', '.join(connected_roles)}")
         
         print("\n🔗 网状连接特点:")
-        print("• 每个角色通过门控机制选择连接到一个融合处理器")
-        print("• 每个融合处理器接收多个角色的输入并融合处理")
-        print("• 每个融合处理器输出反馈到3个角色")
-        print("• 形成角色↔融合处理器的多层网状结构")
+        print("• 每个角色通过门控机制选择连接到一个数据处理器")
+        print("• 每个数据处理器接收多个角色的输入并进行数据聚合处理")
+        print("• 每个数据处理器输出反馈到3个角色")
+        print("• 形成角色↔数据处理器的多层网状结构")
+        print("• 数据处理器专注于数据路由、传输、缓存、同步等功能")
         print("• 所有信息最终汇聚到Argallia指挥层")
         print("=" * 100)
         
@@ -186,11 +208,11 @@ def create_data_flow_diagram():
     # 定义各层的框
     boxes_info = [
         {"text": "输入 X\n(B, L, d)", "pos": (2, 8), "color": "lightblue"},
-        {"text": "19个角色模块\n并行处理", "pos": (2, 6.5), "color": "lightgreen"},
-        {"text": "门控选择\n连接融合处理器", "pos": (2, 5), "color": "yellow"},
-        {"text": "7个融合处理器\n融合处理", "pos": (8, 6.5), "color": "orange"},
-        {"text": "反馈分发\n3个角色/融合处理器", "pos": (8, 5), "color": "lightpink"},
-        {"text": "角色接收\n融合处理器反馈", "pos": (14, 6.5), "color": "lightcyan"},
+        {"text": "19个角色模块\n特化处理", "pos": (2, 6.5), "color": "lightgreen"},
+        {"text": "门控选择\n连接数据处理器", "pos": (2, 5), "color": "yellow"},
+        {"text": "7个数据处理器\n聚合·路由·传输", "pos": (8, 6.5), "color": "orange"},
+        {"text": "反馈分发\n3个角色/处理器", "pos": (8, 5), "color": "lightpink"},
+        {"text": "角色接收\n处理器反馈", "pos": (14, 6.5), "color": "lightcyan"},
         {"text": "Argallia汇总\n全局注意力", "pos": (8, 3), "color": "gold"},
         {"text": "最终输出\n标量值", "pos": (8, 1.5), "color": "lightcoral"}
     ]
@@ -208,11 +230,11 @@ def create_data_flow_diagram():
     arrows = [
         ((2, 7.6), (2, 6.9)),    # 输入→角色
         ((2, 6.1), (2, 5.4)),    # 角色→门控
-        ((3, 5), (7, 6.5)),      # 门控→融合处理器
-        ((8, 6.1), (8, 5.4)),    # 融合处理器→反馈
+        ((3, 5), (7, 6.5)),      # 门控→数据处理器
+        ((8, 6.1), (8, 5.4)),    # 数据处理器→反馈
         ((9, 5), (13, 6.5)),     # 反馈→角色
         ((2, 4.6), (7, 3.4)),    # 角色→Argallia
-        ((8, 4.6), (8, 3.4)),    # 融合处理器→Argallia
+        ((8, 4.6), (8, 3.4)),    # 数据处理器→Argallia
         ((14, 6.1), (9, 3.4)),   # 反馈角色→Argallia
         ((8, 2.6), (8, 1.9)),    # Argallia→输出
     ]
@@ -238,7 +260,7 @@ def create_data_flow_diagram():
                 fontsize=exp["size"], ha='center', color='red', fontweight='bold')
     
     # 网状连接示意
-    ax.text(8, 0.5, '🔗 网状特点：角色↔融合处理器双向连接 + 全局Argallia汇聚', 
+    ax.text(8, 0.5, '🔗 网状特点：角色↔数据处理器双向连接 + 全局Argallia汇聚', 
             fontsize=12, ha='center', fontweight='bold', style='italic')
     
     plt.tight_layout()
