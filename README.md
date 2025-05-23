@@ -52,6 +52,33 @@ ReverberationNet 是一个创新的深度学习架构，灵感来源于交响乐
 | Timbre | 音色处理器 | Viola, Greta, Philip | 音色特征融合 |
 | Structure | 结构处理器 | Philip, Clarinet, Elena | 结构特征融合 |
 
+### Argallia指挥层
+
+| 组件名 | 中文名 | 输入来源 | 功能描述 |
+|--------|--------|----------|----------|
+| Argallia | 阿嘉莉亚指挥层 | 19个角色输出 + 7个处理器输出 | 全局特征汇聚与最终决策 |
+
+**Argallia指挥层特性：**
+
+- **全局注意力机制**: 对所有26个输入（19个角色+7个处理器）进行多头注意力处理
+- **维度自适应**: 自动处理不同模块输出的序列长度差异
+- **特征提取**: 通过平均池化和前馈网络提取全局特征
+- **最终输出**: 产生标量回归结果，实现端到端的学习目标
+- **架构统筹**: 作为网状架构的"指挥家"，统筹所有模块的输出信息
+
+```python
+# Argallia指挥层结构
+class Argallia(nn.Module):
+    def __init__(self, d):
+        self.global_attention = nn.MultiheadAttention(d, num_heads=8)
+        self.layer_norm = nn.LayerNorm(d)
+        self.output_layer = nn.Sequential(
+            nn.Linear(d, d//2),
+            nn.GELU(),
+            nn.Linear(d//2, 1)
+        )
+```
+
 ## 🔗 网状连接机制
 
 ### 数据流程图
