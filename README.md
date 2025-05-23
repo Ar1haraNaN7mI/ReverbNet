@@ -1,12 +1,18 @@
 # ReverberationNet
 
-> 基于角色-乐器网状连接的深度神经网络架构
+> 基于角色-融合处理器网状连接的深度神经网络架构
 
 ## 📖 概述
 
-ReverberationNet 是一个创新的深度学习架构，灵感来源于交响乐团的演奏机制。网络采用**网状连接**设计，由19个功能性角色模块和7个乐器层组成，通过门控机制实现动态连接，形成复杂的信息交互网络。
+ReverberationNet 是一个创新的深度学习架构，灵感来源于交响乐团的演奏机制。网络采用**网状连接**设计，由19个功能性角色模块和7个融合处理器组成，通过门控机制实现动态连接，形成复杂的信息交互网络。
 
 ## 🎼 网状架构设计
+
+### 网状架构图
+
+![ReverberationNet 网状架构](./reverbnet_architecture.png)
+
+*网状架构总览：展示19个角色模块、7个融合处理器和Argallia指挥层的完整连接关系*
 
 ### 核心组件
 
@@ -38,15 +44,21 @@ ReverberationNet 是一个创新的深度学习架构，灵感来源于交响乐
 
 | 处理器名 | 中文名 | 连接角色 | 功能 |
 |---------|--------|----------|------|
-| Harmony | 和声处理器 | Eileen, Pluto, Organ | 和声特征融合 |
-| Rhythm | 节奏处理器 | Harp, WolfHour, Viola | 节奏特征融合 |
-| Melody | 旋律处理器 | Philip, Cello, CircusMaster | 旋律特征融合 |
-| Texture | 织体处理器 | Bremen, Zaixian, Elena | 织体特征融合 |
-| Dynamics | 力度处理器 | Greta, Clarinet, Horn | 力度特征融合 |
-| Timbre | 音色处理器 | Tuba, Trombone, Violin1 | 音色特征融合 |
-| Structure | 结构处理器 | Violin2, Eileen, Pluto | 结构特征融合 |
+| Harmony | 和声处理器 | Eileen, Cello, Horn | 和声特征融合 |
+| Rhythm | 节奏处理器 | Pluto, CircusMaster, Tuba | 节奏特征融合 |
+| Melody | 旋律处理器 | Organ, Bremen, Trombone | 旋律特征融合 |
+| Texture | 织体处理器 | Harp, Zaixian, Violin1 | 织体特征融合 |
+| Dynamics | 力度处理器 | WolfHour, Elena, Violin2 | 力度特征融合 |
+| Timbre | 音色处理器 | Viola, Greta, Philip | 音色特征融合 |
+| Structure | 结构处理器 | Philip, Clarinet, Elena | 结构特征融合 |
 
 ## 🔗 网状连接机制
+
+### 数据流程图
+
+![ReverberationNet 数据流程](./reverbnet_dataflow.png)
+
+*数据流程图：详细展示信息在角色模块和融合处理器间的传递路径与处理流程*
 
 ### 三层处理架构
 
@@ -64,7 +76,7 @@ ReverberationNet 是一个创新的深度学习架构，灵感来源于交响乐
 
 2. **处理器→角色连接（反馈机制）**：
    - 每个融合处理器连接到3个角色
-   - 简化融合来自多个角色的输入
+   - 融合来自多个角色的输入
    - 变分编码确保信息正则化
    - 反馈增强角色的表达能力
 
@@ -78,8 +90,8 @@ ReverberationNet 是一个创新的深度学习架构，灵感来源于交响乐
 ### 1. 门控选择机制
 ```python
 # 每个角色模块包含门控层
-self.instrument_gate = nn.Linear(d, 1)
-gate_prob = torch.sigmoid(self.instrument_gate(role_output.mean(dim=1)))
+self.processor_gate = nn.Linear(d, 1)
+gate_prob = torch.sigmoid(self.processor_gate(role_output.mean(dim=1)))
 ```
 
 ### 2. 变分编码机制
@@ -89,12 +101,12 @@ gate_prob = torch.sigmoid(self.instrument_gate(role_output.mean(dim=1)))
 - **采样**: z = μ + ε × exp(0.5 × logvar)
 - **KL散度**: 正则化潜在空间
 
-### 3. 乐器层融合
+### 3. 融合处理器融合
 ```python
 # 多头注意力融合
 fused_output, _ = self.input_fusion(stacked_inputs, stacked_inputs, stacked_inputs)
-# 乐器特有处理
-processed = self.instrument_processor(fused_output.mean(dim=1, keepdim=True))
+# 处理器特有处理
+processed = self.processor_network(fused_output.mean(dim=1, keepdim=True))
 # 分发到3个输出
 outputs = [distributor(z) for distributor in self.output_distributors]
 ```
@@ -102,9 +114,9 @@ outputs = [distributor(z) for distributor in self.output_distributors]
 ### 4. 自适应维度匹配
 网络自动处理不同模块间的维度差异：
 ```python
-if instrument_sum.size(1) != role_output.size(1):
-    instrument_sum = F.adaptive_avg_pool1d(
-        instrument_sum.transpose(1,2), role_output.size(1)
+if processor_sum.size(1) != role_output.size(1):
+    processor_sum = F.adaptive_avg_pool1d(
+        processor_sum.transpose(1,2), role_output.size(1)
     ).transpose(1,2)
 ```
 
@@ -121,7 +133,7 @@ import torch
 from ReverbNet import ReverberationNet
 
 # 创建网状模型
-model = ReverberationNet(d=64, num_instruments=7)
+model = ReverberationNet(d=64, num_processors=7)
 
 # 输入数据 (batch_size, sequence_length, feature_dim)
 x = torch.randn(32, 10, 64)
@@ -171,9 +183,9 @@ python print_architecture.py
 ### 网状架构优势
 
 1. **增强非线性能力**: 多层网状连接提供更复杂的特征变换
-2. **信息交互丰富**: 角色↔乐器双向连接增强信息流
+2. **信息交互丰富**: 角色↔融合处理器双向连接增强信息流
 3. **动态自适应**: 门控机制实现连接的动态调整
-4. **反馈增强**: 乐器反馈提升角色表达能力
+4. **反馈增强**: 融合处理器反馈提升角色表达能力
 5. **全局汇聚**: Argallia层实现最优特征整合
 
 ## 📁 文件结构
@@ -195,16 +207,26 @@ ReverbNet-main/
 ### 网状连接映射
 
 ```python
-# 角色到乐器的映射（循环分配）
-role_to_instrument = {
-    'eileen': 'piano', 'pluto': 'guitar', 'organ': 'flute',
-    'harp': 'trumpet', 'wolfhour': 'drum', ...
+# 角色到融合处理器的映射（门控选择）
+role_to_processor = {
+    'eileen': 'harmony', 'pluto': 'rhythm', 'organ': 'melody',
+    'harp': 'texture', 'wolfhour': 'dynamics', 'viola': 'timbre',
+    'philip': 'structure', 'cello': 'harmony', 'circusmaster': 'rhythm',
+    'bremen': 'melody', 'zaixian': 'texture', 'elena': 'dynamics',
+    'greta': 'timbre', 'clarinet': 'structure', 'horn': 'harmony',
+    'tuba': 'rhythm', 'trombone': 'melody', 'violin1': 'texture',
+    'violin2': 'dynamics'
 }
 
-# 乐器到角色的映射（每个乐器连接3个角色）
-instrument_to_roles = {
-    'piano': ['eileen', 'pluto', 'organ'],
-    'guitar': ['harp', 'wolfhour', 'viola'], ...
+# 融合处理器到角色的映射（每个处理器连接3个角色）
+processor_to_roles = {
+    'harmony': ['eileen', 'cello', 'horn'],
+    'rhythm': ['pluto', 'circusmaster', 'tuba'],
+    'melody': ['organ', 'bremen', 'trombone'],
+    'texture': ['harp', 'zaixian', 'violin1'],
+    'dynamics': ['wolfhour', 'elena', 'violin2'],
+    'timbre': ['viola', 'greta', 'philip'],
+    'structure': ['philip', 'clarinet', 'elena']
 }
 ```
 
