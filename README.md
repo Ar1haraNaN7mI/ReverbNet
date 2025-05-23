@@ -99,48 +99,160 @@ class RoleModule(nn.Module):
 | **CacheManager** | 缓存管理器 | Viola, Greta, Clarinet | 数据缓存与预取优化策略 | 缓存策略 + 预取机制 | 卷积缓存 + LRU策略 |
 | **SyncCoordinator** | 同步协调器 | Philip, Clarinet, Elena | 多源数据同步与时序协调 | 时序同步 + 协调矩阵 | 时序注意力 + 同步矩阵 |
 
-#### 🛠️ 数据处理器核心实现
+#### 🛠️ 数据处理器个性化实现
 
-每个数据处理器的基本结构：
+7个数据处理器都有各自的专业化设计和独特实现：
 
+##### DataAggregator (数据聚合器)
 ```python
-class DataProcessor(nn.Module):
-    def __init__(self, d, num_inputs=3):
-        # 输入聚合
+class DataAggregator(nn.Module):
+    def __init__(self, d):
+        # 多头注意力聚合
         self.input_aggregator = nn.MultiheadAttention(d, num_heads=8)
+        self.layer_norm = nn.LayerNorm(d)
         
-        # 专业化处理（不同处理器有不同实现）
-        self.lstm_processor = nn.LSTM(d, d, batch_first=True)  # 流处理器
-        self.conv_router = nn.Conv1d(d, d, kernel_size=5, padding=2)  # 路由器
-        self.attention_manager = nn.MultiheadAttention(d, num_heads=4)  # 带宽管理器
+        # 智能路由选择
+        self.route_selector = nn.Sequential(
+            nn.Linear(d, d//2),
+            nn.Sigmoid(),
+            nn.Linear(d//2, d)
+        )
         
         # 变分编码
         self.mu_layer = nn.Linear(d, d)
         self.logvar_layer = nn.Linear(d, d)
         
-        # 输出分发器（反馈到3个角色）
-        self.output_distributors = nn.ModuleList([
-            nn.Linear(d, d) for _ in range(3)
-        ])
-    
-    def forward(self, role_inputs):
-        # 聚合多个角色输入
-        stacked_inputs = torch.stack(role_inputs, dim=0)
-        aggregated, _ = self.input_aggregator(stacked_inputs, stacked_inputs, stacked_inputs)
-        
-        # 专业化数据处理
-        processed = self.specialized_processing(aggregated)
-        
-        # 变分编码
-        mu = self.mu_layer(processed.mean(dim=1))
-        logvar = self.logvar_layer(processed.mean(dim=1))
-        z = self.reparameterize(mu, logvar)
-        
-        # 分发到3个输出
-        outputs = [distributor(z) for distributor in self.output_distributors]
-        
-        return outputs, z
+        # 输出分发器
+        self.output_distributors = nn.ModuleList([nn.Linear(d, d) for _ in range(3)])
 ```
+
+##### StreamProcessor (流处理器)
+```python
+class StreamProcessor(nn.Module):
+    def __init__(self, d):
+        # 流数据缓冲
+        self.flow_buffer = nn.Conv1d(d, d, kernel_size=3, padding=1)
+        self.sync_flow = nn.Conv1d(d, d, kernel_size=5, padding=2)
+        
+        # 流量控制
+        self.flow_controller = nn.Sequential(
+            nn.Linear(d, 2*d),
+            nn.ReLU(),
+            nn.Linear(2*d, d),
+            nn.Tanh()
+        )
+        
+        # 变分编码与分发
+        self.mu_layer = nn.Linear(d, d)
+        self.logvar_layer = nn.Linear(d, d)
+        self.output_distributors = nn.ModuleList([nn.Linear(d, d) for _ in range(3)])
+```
+
+##### MessageRouter (消息路由器)
+```python
+class MessageRouter(nn.Module):
+    def __init__(self, d):
+        # 双向LSTM消息编码
+        self.message_encoder = nn.LSTM(d, d//2, bidirectional=True, batch_first=True)
+        
+        # 路由决策
+        self.routing_weights = nn.Sequential(
+            nn.Linear(d, d),
+            nn.Softmax(dim=-1)
+        )
+        self.route_processor = nn.Linear(d, d)
+        
+        # 变分编码与分发
+        self.mu_layer = nn.Linear(d, d)
+        self.logvar_layer = nn.Linear(d, d)
+        self.output_distributors = nn.ModuleList([nn.Linear(d, d) for _ in range(3)])
+```
+
+##### BandwidthManager (带宽管理器)
+```python
+class BandwidthManager(nn.Module):
+    def __init__(self, d):
+        # 带宽优化注意力
+        self.bandwidth_optimizer = nn.MultiheadAttention(d, num_heads=8)
+        
+        # 负载均衡
+        self.load_balancer = nn.Sequential(
+            nn.Linear(d, 2*d),
+            nn.LeakyReLU(0.2),
+            nn.Linear(2*d, d),
+            nn.Dropout(0.1)
+        )
+        
+        # 变分编码与分发
+        self.mu_layer = nn.Linear(d, d)
+        self.logvar_layer = nn.Linear(d, d)
+        self.output_distributors = nn.ModuleList([nn.Linear(d, d) for _ in range(3)])
+```
+
+##### ProtocolConverter (协议转换器)
+```python
+class ProtocolConverter(nn.Module):
+    def __init__(self, d):
+        # 协议检测与分析
+        self.protocol_detector = nn.Sequential(
+            nn.Linear(d, d),
+            nn.Softplus()
+        )
+        
+        # 格式转换参数
+        self.format_converter = nn.Parameter(torch.randn(d))
+        self.conversion_layer = nn.Linear(d, d)
+        
+        # 变分编码与分发
+        self.mu_layer = nn.Linear(d, d)
+        self.logvar_layer = nn.Linear(d, d)
+        self.output_distributors = nn.ModuleList([nn.Linear(d, d) for _ in range(3)])
+```
+
+##### CacheManager (缓存管理器)
+```python
+class CacheManager(nn.Module):
+    def __init__(self, d):
+        # 缓存策略优化
+        self.cache_optimizer = nn.Sequential(
+            nn.Linear(d, 2*d),
+            nn.ELU(),
+            nn.Linear(2*d, d)
+        )
+        
+        # 预取机制矩阵
+        self.prefetch_matrix = nn.Parameter(0.1 * torch.eye(d) + 0.01 * torch.randn(d, d))
+        
+        # 变分编码与分发
+        self.mu_layer = nn.Linear(d, d)
+        self.logvar_layer = nn.Linear(d, d)
+        self.output_distributors = nn.ModuleList([nn.Linear(d, d) for _ in range(3)])
+```
+
+##### SyncCoordinator (同步协调器)
+```python
+class SyncCoordinator(nn.Module):
+    def __init__(self, d):
+        # 时序同步处理
+        self.sync_processor = nn.Linear(d, d)
+        
+        # 协调矩阵
+        self.coordination_matrix = nn.Parameter(torch.randn(d, d))
+        self.coordinator = nn.Sequential(
+            nn.SiLU(),
+            nn.Linear(d, d)
+        )
+        
+        # 变分编码与分发
+        self.mu_layer = nn.Linear(d, d)
+        self.logvar_layer = nn.Linear(d, d)
+        self.output_distributors = nn.ModuleList([nn.Linear(d, d) for _ in range(3)])
+```
+
+**通用处理流程**：每个数据处理器都遵循以下模式：
+1. **专业化处理**: 根据各自功能进行特化处理
+2. **变分编码**: 统一的变分自编码器结构
+3. **输出分发**: 通过3个分发器反馈到连接的角色模块
 
 ### 🎯 Argallia指挥层详细说明
 
@@ -273,15 +385,40 @@ gate_prob = torch.sigmoid(self.processor_gate(role_output.mean(dim=1)))
 - **采样**: z = μ + ε × exp(0.5 × logvar)
 - **KL散度**: 正则化潜在空间
 
-### 3. 数据处理器处理
+### 3. 数据处理器个性化处理
+每个数据处理器都有独特的专业化处理方式：
+
 ```python
-# 多头注意力聚合
+# DataAggregator - 智能聚合与路由
 aggregated_output, _ = self.input_aggregator(stacked_inputs, stacked_inputs, stacked_inputs)
-# 数据路由处理
 routed_data = self.route_selector(aggregated_output.mean(dim=1, keepdim=True))
-# 分发到3个输出
-outputs = [distributor(z) for distributor in self.output_distributors]
+
+# StreamProcessor - 流数据缓冲与控制
+buffered_flow = F.relu(self.flow_buffer(x_avg.transpose(1,2))).transpose(1,2)
+controlled_flow = self.flow_controller(buffered_flow.mean(dim=1))
+
+# MessageRouter - 双向消息编码与路由
+encoded_message, _ = self.message_encoder(x_avg)
+routing_weights = self.routing_weights(encoded_message.mean(dim=1))
+
+# BandwidthManager - 带宽优化与负载均衡
+optimized_bandwidth, _ = self.bandwidth_optimizer(x_avg, x_avg, x_avg)
+balanced_load = self.load_balancer(optimized_bandwidth.mean(dim=1))
+
+# ProtocolConverter - 协议检测与格式转换
+protocol_strength = self.protocol_detector(x_avg.mean(dim=1))
+converted_data = protocol_strength * torch.sigmoid(self.format_converter)
+
+# CacheManager - 缓存优化与预取
+cached_data = self.cache_optimizer(x_avg.mean(dim=1))
+prefetched_data = torch.matmul(cached_data, self.prefetch_matrix)
+
+# SyncCoordinator - 时序同步与协调
+sync_data = self.sync_processor(x_avg.mean(dim=1))
+coordinated_data = torch.matmul(sync_data, self.coordination_matrix)
 ```
+
+**共同特点**：所有数据处理器都包含变分编码和3路输出分发
 
 ### 4. 自适应维度匹配
 网络自动处理不同模块间的维度差异：
