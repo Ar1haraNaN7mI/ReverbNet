@@ -214,236 +214,320 @@ instrument_to_roles = {
 
 #### 基础角色模块 (RoleModule)
 
-对于每个角色模块 $R_i$，处理流程如下：
+对于每个角色模块 R_i，处理流程如下：
 
 **1. 角色特有处理**
-$$h_i = \text{RoleProcessor}_i(x)$$
+```
+h_i = RoleProcessor_i(x)
+```
 
-**2. 乐器输入融合**
-$$h_i' = h_i + \sum_{j \in \text{Instruments}_i} \text{AdaptivePool}(I_j)$$
+**2. 融合处理器输入融合**
+```
+h_i' = h_i + Σ[j∈Processors_i] AdaptivePool(P_j)
+```
 
-其中 $\text{AdaptivePool}$ 确保维度匹配：
-$$\text{AdaptivePool}(I_j) = \text{Pool1D}(I_j^T, L_{target})^T$$
+其中 AdaptivePool 确保维度匹配：
+```
+AdaptivePool(P_j) = Pool1D(P_j^T, L_target)^T
+```
 
 **3. 变分编码**
-$$\mu_i = W_{\mu}^{(i)} h_i'$$
-$$\log\sigma_i^2 = W_{\log\sigma}^{(i)} h_i'$$
-$$z_i = \mu_i + \epsilon \odot \exp(0.5 \log\sigma_i^2), \quad \epsilon \sim \mathcal{N}(0, I)$$
+```
+μ_i = W_μ^(i) * h_i'
+log(σ_i²) = W_logσ^(i) * h_i'
+z_i = μ_i + ε ⊙ exp(0.5 * log(σ_i²)), where ε ~ N(0, I)
+```
 
 **4. 门控机制**
-$$g_i = \sigma\left(W_g^{(i)} \cdot \text{Mean}(h_i', \text{dim}=1)\right)$$
+```
+g_i = sigmoid(W_g^(i) · Mean(h_i', dim=1))
+```
 
 **5. 残差连接与层归一化**
-$$R_i(x) = \text{LayerNorm}(x + z_i)$$
+```
+R_i(x) = LayerNorm(x + z_i)
+```
 
 #### 具体角色模块
 
 **Eileen (艾琳) - 高频调节与卷积注意力专家**
-$$\text{Conv}_{\text{Eileen}}(x) = \text{Conv1D}(x^T, k=3)^T$$
-$$h_{\text{conv}} = \text{GELU}(\text{Conv}_{\text{Eileen}}(x))$$
-$$h_{\text{attn}} = \text{MultiheadAttention}(h_{\text{conv}}, h_{\text{conv}}, h_{\text{conv}})$$
-$$\text{Eileen}(x) = W_{\text{ffn}} h_{\text{attn}}$$
+```
+Conv_Eileen(x) = Conv1D(x^T, kernel=3)^T
+h_conv = GELU(Conv_Eileen(x))
+h_attn = MultiheadAttention(h_conv, h_conv, h_conv)
+Eileen(x) = W_ffn * h_attn
+```
 
 **Pluto (普鲁托) - 深度非线性变换专家**
-$$h_1 = \text{GELU}(W_1^{\text{Pluto}} x)$$
-$$h_1' = \text{Dropout}(h_1, p=0.1)$$
-$$h_2 = \text{GELU}(W_2^{\text{Pluto}} h_1')$$
-$$\text{Pluto}(x) = W_3^{\text{Pluto}} h_2$$
+```
+h_1 = GELU(W_1^Pluto * x)
+h_1' = Dropout(h_1, p=0.1)
+h_2 = GELU(W_2^Pluto * h_1')
+Pluto(x) = W_3^Pluto * h_2
 
-其中 $W_1 \in \mathbb{R}^{d \times 4d}$, $W_2 \in \mathbb{R}^{4d \times 2d}$, $W_3 \in \mathbb{R}^{2d \times d}$
+其中: W_1 ∈ R^(d×4d), W_2 ∈ R^(4d×2d), W_3 ∈ R^(2d×d)
+```
 
 **Organ (管风琴) - 多管道并行处理专家**
-$$\text{Pipe}_j(x) = \text{GELU}(W_j^{\text{pipe}} x), \quad j = 1,2,3,4$$
-$$h_{\text{concat}} = \text{Concat}[\text{Pipe}_1(x), \text{Pipe}_2(x), \text{Pipe}_3(x), \text{Pipe}_4(x)]$$
-$$\text{Organ}(x) = W_{\text{fusion}} h_{\text{concat}}$$
+```
+Pipe_j(x) = GELU(W_j^pipe * x), j = 1,2,3,4
+h_concat = Concat[Pipe_1(x), Pipe_2(x), Pipe_3(x), Pipe_4(x)]
+Organ(x) = W_fusion * h_concat
+```
 
 **Harp (竖琴) - LSTM序列建模专家**
-$$h_t, c_t = \text{LSTM}(x_t, h_{t-1}, c_{t-1})$$
-$$\text{Harp}(x) = [h_1, h_2, ..., h_T]$$
+```
+h_t, c_t = LSTM(x_t, h_{t-1}, c_{t-1})
+Harp(x) = [h_1, h_2, ..., h_T]
+```
 
 **WolfHour (狼之时刻) - 双向GRU时域专家**
-$$\vec{h}_t = \text{GRU}_{\text{forward}}(x_t, \vec{h}_{t-1})$$
-$$\overleftarrow{h}_t = \text{GRU}_{\text{backward}}(x_t, \overleftarrow{h}_{t+1})$$
-$$\text{WolfHour}(x) = \vec{h}_t + \overleftarrow{h}_t$$
+```
+h_t_forward = GRU_forward(x_t, h_{t-1}_forward)
+h_t_backward = GRU_backward(x_t, h_{t+1}_backward)
+WolfHour(x) = h_t_forward + h_t_backward
+```
 
 **Viola (中提琴) - 中频谐波分析专家**
-$$h_1 = \tanh(W_1^{\text{Viola}} x)$$
-$$h_2 = W_2^{\text{Viola}} h_1$$
-$$\text{Viola}(x) = \text{LayerNorm}(h_2)$$
+```
+h_1 = tanh(W_1^Viola * x)
+h_2 = W_2^Viola * h_1
+Viola(x) = LayerNorm(h_2)
+```
 
 **Philip (菲利普) - 结构调和与正则化专家**
-$$h_1 = \text{ReLU}(W_1^{\text{Philip}} x), \quad W_1 \in \mathbb{R}^{d \times d/2}$$
-$$h_2 = W_2^{\text{Philip}} h_1, \quad W_2 \in \mathbb{R}^{d/2 \times d}$$
-$$h_3 = \text{Dropout}(h_2, p=0.2)$$
-$$\text{Philip}(x) = W_3^{\text{Philip}} h_3$$
+```
+h_1 = ReLU(W_1^Philip * x), W_1 ∈ R^(d×d/2)
+h_2 = W_2^Philip * h_1, W_2 ∈ R^(d/2×d)
+h_3 = Dropout(h_2, p=0.2)
+Philip(x) = W_3^Philip * h_3
+```
 
 **Cello (大提琴) - 低频共鸣与深度特征专家**
-$$h_1 = \text{LeakyReLU}(W_1^{\text{Cello}} x, \alpha=0.2)$$
-$$h_2 = W_2^{\text{Cello}} h_1$$
-$$\text{Cello}(x) = \text{BatchNorm1D}(h_2)$$
+```
+h_1 = LeakyReLU(W_1^Cello * x, α=0.2)
+h_2 = W_2^Cello * h_1
+Cello(x) = BatchNorm1D(h_2)
+```
 
 **CircusMaster (马戏团长) - 噪声控制与注意力调节专家**
-$$\text{NoiseGate}(x) = \sigma(W_{\text{noise}} x) \odot x$$
-$$h_{\text{attn}} = \text{MultiheadAttention}(\text{NoiseGate}(x), \text{NoiseGate}(x), \text{NoiseGate}(x))$$
-$$\text{CircusMaster}(x) = W_{\text{control}} h_{\text{attn}}$$
+```
+NoiseGate(x) = sigmoid(W_noise * x) ⊙ x
+h_attn = MultiheadAttention(NoiseGate(x), NoiseGate(x), NoiseGate(x))
+CircusMaster(x) = W_control * h_attn
+```
 
 **Bremen (不莱梅乐队) - 多声道融合专家**
-$$\text{Channel}_j(x) = W_j^{\text{channel}} x, \quad j = 1,2,3$$
-$$h_{\text{multi}} = \text{Concat}[\text{Channel}_1(x), \text{Channel}_2(x), \text{Channel}_3(x)]$$
-$$h_1 = \text{GELU}(W_1^{\text{Bremen}} h_{\text{multi}})$$
-$$\text{Bremen}(x) = W_2^{\text{Bremen}} h_1$$
+```
+Channel_j(x) = W_j^channel * x, j = 1,2,3
+h_multi = Concat[Channel_1(x), Channel_2(x), Channel_3(x)]
+h_1 = GELU(W_1^Bremen * h_multi)
+Bremen(x) = W_2^Bremen * h_1
+```
 
 **Zaixian (在宪) - 附旋律协同控制专家**
-$$h_1 = \sigma(W_1^{\text{Zaixian}} x)$$
-$$h_2 = \text{GELU}(W_2^{\text{Zaixian}} h_1)$$
-$$\text{Zaixian}(x) = W_3^{\text{Zaixian}} h_2$$
+```
+h_1 = sigmoid(W_1^Zaixian * x)
+h_2 = GELU(W_2^Zaixian * h_1)
+Zaixian(x) = W_3^Zaixian * h_2
+```
 
 **Elena (伊莲娜) - 主旋律建模专家**
-$$h_1 = \text{GELU}(W_1^{\text{Elena}} x), \quad W_1 \in \mathbb{R}^{d \times 3d}$$
-$$h_2 = \text{GELU}(W_2^{\text{Elena}} h_1), \quad W_2 \in \mathbb{R}^{3d \times 2d}$$
-$$h_3 = W_3^{\text{Elena}} h_2, \quad W_3 \in \mathbb{R}^{2d \times d}$$
-$$\text{Elena}(x) = \text{LayerNorm}(h_3)$$
+```
+h_1 = GELU(W_1^Elena * x), W_1 ∈ R^(d×3d)
+h_2 = GELU(W_2^Elena * h_1), W_2 ∈ R^(3d×2d)
+h_3 = W_3^Elena * h_2, W_3 ∈ R^(2d×d)
+Elena(x) = LayerNorm(h_3)
+```
 
 **Greta (格蕾塔) - 节奏结构编码专家**
-$$h_{\text{rhythm}} = \text{GELU}(\text{Conv1D}(x^T, k=5)^T)$$
-$$h_{\text{tempo}} = W_{\text{tempo}} h_{\text{rhythm}}$$
-$$\text{BeatGate}(x) = \sigma(W_{\text{beat}} x)$$
-$$\text{Greta}(x) = h_{\text{tempo}} \odot \text{BeatGate}(x)$$
+```
+h_rhythm = GELU(Conv1D(x^T, kernel=5)^T)
+h_tempo = W_tempo * h_rhythm
+BeatGate(x) = sigmoid(W_beat * x)
+Greta(x) = h_tempo ⊙ BeatGate(x)
+```
 
 **Clarinet (单簧管) - 音色处理与频域变换专家**
-$$h_1 = \text{Softplus}(W_1^{\text{Clarinet}} x)$$
-$$h_2 = \text{ELU}(W_2^{\text{Clarinet}} h_1), \quad W_2 \in \mathbb{R}^{d \times d/2}$$
-$$\text{Clarinet}(x) = W_3^{\text{Clarinet}} h_2, \quad W_3 \in \mathbb{R}^{d/2 \times d}$$
+```
+h_1 = Softplus(W_1^Clarinet * x)
+h_2 = ELU(W_2^Clarinet * h_1), W_2 ∈ R^(d×d/2)
+Clarinet(x) = W_3^Clarinet * h_2, W_3 ∈ R^(d/2×d)
+```
 
 **Horn (圆号) - 音域扩展与动态范围专家**
-$$h_1 = \text{SiLU}(W_1^{\text{Horn}} x), \quad W_1 \in \mathbb{R}^{d \times 4d}$$
-$$h_2 = \text{SiLU}(W_2^{\text{Horn}} h_1), \quad W_2 \in \mathbb{R}^{4d \times 2d}$$
-$$\text{Horn}(x) = W_3^{\text{Horn}} h_2, \quad W_3 \in \mathbb{R}^{2d \times d}$$
+```
+h_1 = SiLU(W_1^Horn * x), W_1 ∈ R^(d×4d)
+h_2 = SiLU(W_2^Horn * h_1), W_2 ∈ R^(4d×2d)
+Horn(x) = W_3^Horn * h_2, W_3 ∈ R^(2d×d)
+```
 
 **Tuba (大号) - 低频增强与重低音专家**
-$$h_1 = \text{LeakyReLU}(W_1^{\text{Tuba}} x, \alpha=0.3)$$
-$$h_2 = \text{LeakyReLU}(W_2^{\text{Tuba}} h_1, \alpha=0.3)$$
-$$h_3 = W_3^{\text{Tuba}} h_2$$
-$$\text{Tuba}(x) = \text{LayerNorm}(h_3)$$
+```
+h_1 = LeakyReLU(W_1^Tuba * x, α=0.3)
+h_2 = LeakyReLU(W_2^Tuba * h_1, α=0.3)
+h_3 = W_3^Tuba * h_2
+Tuba(x) = LayerNorm(h_3)
+```
 
 **Trombone (长号) - 滑音处理与连续变换专家**
-$$h_{\text{slide}} = \text{GELU}(\text{Conv1D}(x^T, k=7)^T)$$
-$$h_{\text{glide}} = W_{\text{glide}} h_{\text{slide}}$$
-$$\text{SmoothWeight}(x) = \sigma(W_{\text{smooth}} x)$$
-$$\text{Trombone}(x) = h_{\text{glide}} \odot \text{SmoothWeight}(x)$$
+```
+h_slide = GELU(Conv1D(x^T, kernel=7)^T)
+h_glide = W_glide * h_slide
+SmoothWeight(x) = sigmoid(W_smooth * x)
+Trombone(x) = h_glide ⊙ SmoothWeight(x)
+```
 
 **Violin1 (第一小提琴) - 主声部领奏专家**
-$$h_{\text{leader}} = \text{MultiheadAttention}(x, x, x, \text{heads}=8)$$
-$$h_{\text{vibrato}} = \text{GELU}(W_{\text{vibrato}} h_{\text{leader}})$$
-$$\text{ExpressionGate}(x) = \sigma(W_{\text{expr}} x)$$
-$$\text{Violin1}(x) = h_{\text{vibrato}} \odot \text{ExpressionGate}(x)$$
+```
+h_leader = MultiheadAttention(x, x, x, heads=8)
+h_vibrato = GELU(W_vibrato * h_leader)
+ExpressionGate(x) = sigmoid(W_expr * x)
+Violin1(x) = h_vibrato ⊙ ExpressionGate(x)
+```
 
 **Violin2 (第二小提琴) - 副声部和声专家**
-$$h_1 = \text{GELU}(W_1^{\text{Violin2}} x), \quad W_1 \in \mathbb{R}^{d \times 2d}$$
-$$h_2 = W_2^{\text{Violin2}} h_1, \quad W_2 \in \mathbb{R}^{2d \times d}$$
-$$h_3 = \text{Dropout}(h_2, p=0.1)$$
-$$h_4 = W_3^{\text{Violin2}} h_3$$
-$$\text{Violin2}(x) = \text{LayerNorm}(h_4)$$
+```
+h_1 = GELU(W_1^Violin2 * x), W_1 ∈ R^(d×2d)
+h_2 = W_2^Violin2 * h_1, W_2 ∈ R^(2d×d)
+h_3 = Dropout(h_2, p=0.1)
+h_4 = W_3^Violin2 * h_3
+Violin2(x) = LayerNorm(h_4)
+```
 
 ### 融合处理器数学表达式（简化版）
 
 #### FusionProcessor 处理流程
 
-对于每个融合处理器 $\mathcal{P}_k$，接收来自连接角色的输入 $\{R_1, R_2, R_3\}$：
+对于每个融合处理器 P_k，接收来自连接角色的输入 {R_1, R_2, R_3}：
 
 **1. 简化输入融合**
-$$X_{\text{avg}} = \frac{1}{3}\sum_{i=1}^{3} R_i$$
-$$X_{\text{fused}} = W_{\text{fusion}}^{\mathcal{P}} X_{\text{avg}}$$
+```
+X_avg = (1/3) * Σ[i=1 to 3] R_i
+X_fused = W_fusion^P * X_avg
+```
 
 **2. 融合处理器特有处理（简化）**
-$$h_{\text{mean}} = \text{Mean}(X_{\text{fused}}, \text{dim}=1)$$
-$$h_1 = \text{GELU}(W_1^{\mathcal{P}} h_{\text{mean}}), \quad W_1^{\mathcal{P}} \in \mathbb{R}^{d \times 2d}$$
-$$h_{\text{proc}} = W_2^{\mathcal{P}} h_1, \quad W_2^{\mathcal{P}} \in \mathbb{R}^{2d \times d}$$
+```
+h_mean = Mean(X_fused, dim=1)
+h_1 = GELU(W_1^P * h_mean), W_1^P ∈ R^(d×2d)
+h_proc = W_2^P * h_1, W_2^P ∈ R^(2d×d)
+```
 
 **3. 变分编码**
-$$\mu_{\mathcal{P}} = W_{\mu}^{\mathcal{P}} h_{\text{proc}}$$
-$$\log\sigma_{\mathcal{P}}^2 = W_{\log\sigma}^{\mathcal{P}} h_{\text{proc}}$$
-$$z_{\mathcal{P}} = \mu_{\mathcal{P}} + \epsilon \odot \exp(0.5 \log\sigma_{\mathcal{P}}^2)$$
+```
+μ_P = W_μ^P * h_proc
+log(σ_P²) = W_logσ^P * h_proc
+z_P = μ_P + ε ⊙ exp(0.5 * log(σ_P²))
+```
 
 **4. 输出分发**
-$$O_j^{\mathcal{P}} = W_j^{\text{dist}} z_{\mathcal{P}}, \quad j = 1,2,3$$
-$$\text{Output}_j^{\mathcal{P}} = \text{Expand}(O_j^{\mathcal{P}}, L_{\text{target}})$$
+```
+O_j^P = W_j^dist * z_P, j = 1,2,3
+Output_j^P = Expand(O_j^P, L_target)
+```
 
 ### Argallia指挥层数学表达式
 
 **1. 输入汇总与归一化**
-设所有角色输出为 $\{R_1', R_2', ..., R_{19}'\}$，所有处理器输出为 $\{P_1, P_2, ..., P_7\}$：
+设所有角色输出为 {R_1', R_2', ..., R_19'}，所有处理器输出为 {P_1, P_2, ..., P_7}：
 
-$$\text{AllOutputs} = \{R_1', R_2', ..., R_{19}', P_1, P_2, ..., P_7\}$$
+```
+AllOutputs = {R_1', R_2', ..., R_19', P_1, P_2, ..., P_7}
+```
 
 **2. 维度归一化**
-$$\tilde{O}_i = \begin{cases}
-O_i & \text{if } L_i = L_{\text{target}} \\
-\text{AdaptivePool1D}(O_i^T, L_{\text{target}})^T & \text{otherwise}
-\end{cases}$$
+```
+O_i_normalized = {
+    O_i,                                    if L_i = L_target
+    AdaptivePool1D(O_i^T, L_target)^T,     otherwise
+}
+```
 
 **3. 全局注意力**
-$$X_{\text{global}} = \text{Stack}([\tilde{O}_1, \tilde{O}_2, ..., \tilde{O}_{26}], \text{dim}=1)$$
-$$X_{\text{attended}} = \text{MultiheadAttention}(X_{\text{global}}, X_{\text{global}}, X_{\text{global}})$$
+```
+X_global = Stack([O_1_norm, O_2_norm, ..., O_26_norm], dim=1)
+X_attended = MultiheadAttention(X_global, X_global, X_global)
+```
 
 **4. 特征提取与最终输出**
-$$f_{\text{global}} = \text{Mean}(X_{\text{attended}}, \text{dim}=1) \in \mathbb{R}^{B \times d}$$
-$$h_{\text{final}} = \text{GELU}(\text{LayerNorm}(W_1^{\text{Argallia}} f_{\text{global}}))$$
-$$\text{output} = W_2^{\text{Argallia}} h_{\text{final}} \in \mathbb{R}^{B}$$
+```
+f_global = Mean(X_attended, dim=1) ∈ R^(B×d)
+h_final = GELU(LayerNorm(W_1^Argallia * f_global))
+output = W_2^Argallia * h_final ∈ R^B
 
-其中 $W_1^{\text{Argallia}} \in \mathbb{R}^{d \times d/2}$, $W_2^{\text{Argallia}} \in \mathbb{R}^{d/2 \times 1}$
+其中: W_1^Argallia ∈ R^(d×d/2), W_2^Argallia ∈ R^(d/2×1)
+```
 
 ### 损失函数与优化
 
 #### 总损失函数
-$$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{MSE}} + \alpha \mathcal{L}_{\text{KL}}$$
+```
+L_total = L_MSE + α * L_KL
+```
 
 #### 均方误差损失
-$$\mathcal{L}_{\text{MSE}} = \frac{1}{B} \sum_{i=1}^{B} (y_i - \hat{y}_i)^2$$
+```
+L_MSE = (1/B) * Σ[i=1 to B] (y_i - ŷ_i)²
+```
 
 #### KL散度正则化
-$$\mathcal{L}_{\text{KL}} = \sum_{i=1}^{19} \text{KL}(\mu_i, \sigma_i^2) + \sum_{j=1}^{7} \text{KL}(\mu_j^{\mathcal{P}}, \sigma_j^{\mathcal{P}2})$$
+```
+L_KL = Σ[i=1 to 19] KL(μ_i, σ_i²) + Σ[j=1 to 7] KL(μ_j^P, σ_j^P²)
 
-其中：
-$$\text{KL}(\mu, \sigma^2) = -\frac{1}{2} \sum_{k=1}^{d} \left(1 + \log\sigma_k^2 - \mu_k^2 - \sigma_k^2\right)$$
+其中:
+KL(μ, σ²) = -0.5 * Σ[k=1 to d] (1 + log(σ_k²) - μ_k² - σ_k²)
+```
 
 #### 门控概率
 每个角色的门控概率：
-$$p_i^{\text{gate}} = \sigma\left(W_g^{(i)} \cdot \frac{1}{L} \sum_{t=1}^{L} h_{i,t}'\right)$$
+```
+p_i^gate = sigmoid(W_g^(i) · (1/L) * Σ[t=1 to L] h_{i,t}')
+```
 
 ### 网状前向传播完整流程
 
 #### 第一层：角色并行处理
-$$R_i^{(1)} = \text{RoleModule}_i(x), \quad i = 1, 2, ..., 19$$
+```
+R_i^(1) = RoleModule_i(x), i = 1, 2, ..., 19
+```
 
 #### 第二层：融合处理器处理
-$$P_j = \text{FusionProcessor}_j(\{R_k^{(1)} : k \in \text{Connected}(j)\}), \quad j = 1, 2, ..., 7$$
+```
+P_j = FusionProcessor_j({R_k^(1) : k ∈ Connected(j)}), j = 1, 2, ..., 7
+```
 
 #### 第三层：角色反馈处理
-$$R_i^{(2)} = \text{RoleModule}_i(R_i^{(1)}, \{P_j^{(i)} : j \in \text{Feedback}(i)\})$$
+```
+R_i^(2) = RoleModule_i(R_i^(1), {P_j^(i) : j ∈ Feedback(i)})
+```
 
 #### 第四层：全局汇聚
-$$y = \text{Argallia}(\{R_1^{(2)}, ..., R_{19}^{(2)}\}, \{P_1, ..., P_7\})$$
+```
+y = Argallia({R_1^(2), ..., R_19^(2)}, {P_1, ..., P_7})
+```
 
 ### 参数复杂度分析
 
 #### 角色模块参数
-- **基础角色模块**: $3d^2 + 3d$ 参数
-- **Eileen**: $d^2 + 16d^2 + 3d^2 = 20d^2$ 参数  
-- **Pluto**: $4d^2 + 2d^2 + d^2 = 7d^2$ 参数
-- **Organ**: $4d^2 + 4d^2 = 8d^2$ 参数
-- **Harp**: $4d^2 + d$ 参数 (LSTM)
-- **WolfHour**: $6d^2 + 2d$ 参数 (双向GRU)
+- **基础角色模块**: 3d² + 3d 参数
+- **Eileen**: d² + 16d² + 3d² = 20d² 参数  
+- **Pluto**: 4d² + 2d² + d² = 7d² 参数
+- **Organ**: 4d² + 4d² = 8d² 参数
+- **Harp**: 4d² + d 参数 (LSTM)
+- **WolfHour**: 6d² + 2d 参数 (双向GRU)
 
 #### 融合处理器参数
-每个融合处理器: $d^2 + 6d^2 + 3d^2 = 10d^2$ 参数
+每个融合处理器: d² + 6d² + 3d² = 10d² 参数
 
 #### Argallia层参数
-$64d^2 + d^2/2 + d/2 + 1$ 参数
+64d² + d²/2 + d/2 + 1 参数
 
 #### 总参数估算
-对于 $d = 64$：
-$$\text{Total} \approx 19 \times 3d^2 + 7 \times 10d^2 + 64d^2 \approx 1,043,413 \text{ 参数}$$
+对于 d = 64：
+```
+Total ≈ 19 × 3d² + 7 × 10d² + 64d² ≈ 1,043,413 参数
+```
 
 ### 损失函数
 
@@ -475,13 +559,76 @@ $$\text{Total} \approx 19 \times 3d^2 + 7 \times 10d^2 + 64d^2 \approx 1,043,413
 - **门控分布**: 平均门控概率0.504，分布合理
 - **信息保留**: 网状连接有效减少信息损失
 
+## 📈 训练效果预览
+
+### 训练配置
+```
+模型总参数数量: 1,043,413
+训练轮数: 50 epochs
+批次大小: 32
+学习率: 1e-3
+数据量: 1000样本
+输入维度: (batch_size, 10, 64)
+```
+
+### 损失收敛曲线
+```
+Epoch   1/50 | Total Loss: 18.115900 | MSE Loss: 0.102766 | KL Loss: 18013.13 | Gate Probs: 38
+Epoch   5/50 | Total Loss: 0.359443  | MSE Loss: 0.079483 | KL Loss: 279.96   | Gate Probs: 38
+Epoch  10/50 | Total Loss: 0.161604  | MSE Loss: 0.077901 | KL Loss: 83.70    | Gate Probs: 38
+Epoch  20/50 | Total Loss: 0.104052  | MSE Loss: 0.075423 | KL Loss: 28.63    | Gate Probs: 38
+Epoch  30/50 | Total Loss: 0.082469  | MSE Loss: 0.066810 | KL Loss: 15.66    | Gate Probs: 38
+Epoch  40/50 | Total Loss: 0.063780  | MSE Loss: 0.053348 | KL Loss: 10.43    | Gate Probs: 38
+Epoch  50/50 | Total Loss: 0.055662  | MSE Loss: 0.047204 | KL Loss: 8.46     | Gate Probs: 38
+```
+
+### 性能指标
+- **最终训练损失**: 0.055662
+- **最终MSE损失**: 0.047204  
+- **最终KL散度**: 8.46
+- **评估MSE损失**: 0.041924
+- **收敛速度**: 快速收敛，前10个epoch损失下降91%
+
+### 门控概率分布
+```
+各模块门控概率分析:
+ 1. Eileen       : 0.5203    11. Zaixian     : 0.4777
+ 2. Pluto        : 0.5134    12. Elena       : 0.2985
+ 3. Organ        : 0.4653    13. Greta       : 0.4857
+ 4. Harp         : 0.4987    14. Clarinet    : 0.4911
+ 5. WolfHour     : 0.4718    15. Horn        : 0.4687
+ 6. Viola        : 0.4567    16. Tuba        : 0.5163
+ 7. Philip       : 0.4833    17. Trombone    : 0.5199
+ 8. Cello        : 0.4883    18. Violin1     : 0.4916
+ 9. CircusMaster : 0.5306    19. Violin2     : 0.4949
+10. Bremen       : 0.5210
+
+平均门控概率: ~0.487 (分布均匀，表明网络充分利用了所有角色模块)
+```
+
+### 关键观察
+1. **损失快速下降**: 总损失从18.12快速降至0.056，收敛效果良好
+2. **MSE稳定**: 回归损失从0.103降至0.047，模型学习效果显著
+3. **KL正则化**: KL散度从18013降至8.46，变分编码正常工作
+4. **门控均衡**: 所有角色模块的门控概率分布合理(0.30-0.53)，无偏向性
+5. **泛化能力**: 评估损失(0.042)低于训练损失，表明良好的泛化性能
+
 ## 🤝 贡献
 
 欢迎提交 Issues 和 Pull Requests！
 
 ## 📜 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
+本项目采用 **Mozilla Public License 2.0 (MPL-2.0)** 许可证 - 详见 [LICENSE](LICENSE) 文件。
+
+### ⚠️ 重要使用限制
+
+- **非商业用途**: 本项目仅供学术研究和非商业用途
+- **禁止未授权公开**: 未经作者明确许可，**禁止**将本项目用于公开发布或商业用途
+- **修改要求**: 如对本项目进行修改，必须在相同许可证下开源修改部分
+- **署名要求**: 使用本项目时必须保留原始版权声明和许可证声明
+
+如需商业使用或公开发布，请联系作者获取明确授权。
 
 ## 🙏 致谢
 
