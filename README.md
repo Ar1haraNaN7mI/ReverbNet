@@ -28,7 +28,7 @@ ReverberationNet 是一个创新的深度学习架构，灵感来源于交响乐
 | 6 | Viola | 中提琴 | 中音域和声分析 | Timbre |
 | 7 | Philip | 菲利普 | 底层结构调和器 | Structure |
 | 8 | Cello | 大提琴 | 低音域深度共鸣 | Harmony |
-| 9 | CircusMaster | 马戏团团长 | 噪声结构解析与正则化 | Rhythm |
+| 9 | CircusMaster | 奥斯瓦尔德 | 噪声结构解析与正则化 | Rhythm |
 | 10 | Bremen | 不莱梅乐队 | 多声道融合组件 | Melody |
 | 11 | Zaixian | 在宪 | 附旋律协同控制 | Texture |
 | 12 | Elena | 伊莲娜 | 主旋律建模者 | Dynamics |
